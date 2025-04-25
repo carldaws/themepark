@@ -66,16 +66,6 @@ func useTheme(themeName string) error {
 		return err
 	}
 
-	templateContent, err := templatesFS.ReadFile("templates/ghostty.tmpl")
-	if err != nil {
-		return err
-	}
-
-	tmpl, err := template.New("ghostty").Parse(string(templateContent))
-	if err != nil {
-		return err
-	}
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -87,21 +77,53 @@ func useTheme(themeName string) error {
 		return err
 	}
 
-	outputPath := filepath.Join(outputDir, "ghostty.conf")
-
-	outFile, err := os.Create(outputPath)
+	// --- Render Ghostty ---
+	ghosttyTemplateContent, err := templatesFS.ReadFile("templates/ghostty.tmpl")
 	if err != nil {
 		return err
 	}
-	defer outFile.Close()
 
-	err = tmpl.Execute(outFile, themeData)
+	ghosttyTmpl, err := template.New("ghostty").Parse(string(ghosttyTemplateContent))
+	if err != nil {
+		return err
+	}
+
+	ghosttyOutPath := filepath.Join(outputDir, "ghostty.conf")
+	ghosttyOutFile, err := os.Create(ghosttyOutPath)
+	if err != nil {
+		return err
+	}
+	defer ghosttyOutFile.Close()
+
+	err = ghosttyTmpl.Execute(ghosttyOutFile, themeData)
+	if err != nil {
+		return err
+	}
+
+	// --- Render Neovim ---
+	nvimTemplateContent, err := templatesFS.ReadFile("templates/nvim.tmpl")
+	if err != nil {
+		return err
+	}
+
+	nvimTmpl, err := template.New("nvim").Parse(string(nvimTemplateContent))
+	if err != nil {
+		return err
+	}
+
+	nvimOutPath := filepath.Join(outputDir, "nvim.lua")
+	nvimOutFile, err := os.Create(nvimOutPath)
+	if err != nil {
+		return err
+	}
+	defer nvimOutFile.Close()
+
+	err = nvimTmpl.Execute(nvimOutFile, themeData)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("✅ Theme switched!")
-
 	return nil
 }
 
@@ -149,10 +171,13 @@ func whereTarget(target string) error {
 		return err
 	}
 
+	outputDir := filepath.Join(homeDir, ".themepark")
+
 	switch target {
 	case "ghostty":
-		outputPath := filepath.Join(homeDir, ".themepark", "ghostty.conf")
-		fmt.Println(outputPath)
+		fmt.Println(filepath.Join(outputDir, "ghostty.conf"))
+	case "nvim":
+		fmt.Println(filepath.Join(outputDir, "nvim.lua"))
 	default:
 		fmt.Println("Unknown target:", target)
 		os.Exit(1)
